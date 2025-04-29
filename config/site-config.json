@@ -1,0 +1,66 @@
+{
+  "auth.providers": [
+    {
+      "type": "builtin"
+    }
+  ],
+  "auth.allowSignup": false,
+  "auth.builtin": {
+    "type": "builtin",
+    "allowSignup": false
+  },
+  "email": {
+    "address": "noreply@example.com",
+    "smtp": false
+  },
+  "auth.adminUsers": ["admin"],
+  "auth.adminPasswords": {
+    "admin": "Adminadmin3339"
+  },
+  "auth.roleDefinitions": {
+    "readOnly": {
+      "permissions": [
+        "search",
+        "user:read"
+      ]
+    }
+  },
+  "externalURL": "http://localhost:7080",
+  "gcpexternalURL": "https://YOUR_GCP_INSTANCE_IP_OR_DOMAIN",
+  "search.index.enabled": true,
+  "search.index.lines": 250000,
+  "search.contextLines": 3,
+  "search.largeFiles": [
+    "**/*.txt"
+  ],
+  "search.scopes": [
+    {
+      "name": "All Content",
+      "value": "select:file",
+      "default": true
+    },
+    {
+      "name": "All Languages",
+      "value": "select:file lang:sanskrit lang:hindi lang:marathi lang:tamil lang:kannada lang:english"
+    },
+    {
+      "name": "Indic Only",
+      "value": "select:file -lang:english"
+    },
+    {
+      "name": "English Only",
+      "value": "select:file lang:english"
+    },
+    {
+      "name": "Dravidian",
+      "value": "select:file lang:tamil lang:kannada"
+    },
+    {
+      "name": "Indo-Aryan",
+      "value": "select:file lang:sanskrit lang:hindi lang:marathi"
+    }
+  ],
+  "experimentalFeatures": {
+    "richTextSearch": true
+  }
+}

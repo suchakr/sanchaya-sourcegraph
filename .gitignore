@@ -1,0 +1,14 @@
+# Environment files with sensitive data
+.env.local
+
+# Data volumes and runtime files
+volumes/
+*.log
+
+# Temporary files
+.DS_Store
+*.swp
+*~
+
+# Compressed archives
+*.tar.gz

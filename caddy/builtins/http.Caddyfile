@@ -1,0 +1,3 @@
+:7080 {
+    reverse_proxy sourcegraph-frontend-0:3080
+}
