@@ -3,6 +3,7 @@
 
 # Data volumes and runtime files
 volumes/
+sourcegraph-data/
 *.log
 
 # Temporary files
