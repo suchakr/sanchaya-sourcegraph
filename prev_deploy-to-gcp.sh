@@ -5,23 +5,30 @@ set -e
 PROJECT_ID=$(gcloud config get-value project)
 ZONE="us-central1-a"
 INSTANCE_NAME="sourcegraph-spot"
-MACHINE_TYPE="e2-standard-8"  # Increased from e2-standard-4 for better performance
+# MACHINE_TYPE="e2-standard-8"  # Increased from e2-standard-4 for better performance
+MACHINE_TYPE="c4d-standard-8"  # Increased from e2-standard-4 for better performance
 DATA_DISK_NAME="sourcegraph-data"
-DATA_DISK_SIZE="100GB"
+DATA_DISK_SIZE="100GB"  # Starting with larger disk for initial deployment
 STATIC_IP_NAME="sourcegraph-static-ip"
 GITHUB_REPO="https://github.com/suchakr/sanchaya-sourcegraph.git"
 
 # Checkpoint management functions
 check_stage() {
     local stage=$1
-    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="[[ -f /sourcegraph-data/.stage_${stage}_complete ]]"
-    return $?
+    # First deployment won't have the directory structure, so assume stage is not complete
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="[[ -f ~/sourcegraph/.stage_${stage}_complete ]]" 2>/dev/null || return 1
 }
 
 mark_stage_complete() {
     local stage=$1
-    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="touch /sourcegraph-data/.stage_${stage}_complete"
+    # Ensure directory exists before creating marker file
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="mkdir -p ~/sourcegraph && touch ~/sourcegraph/.stage_${stage}_complete"
 }
+
+# Test code - commented out after verification
+# mark_stage_complete "dummy_ignore"
+# gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="pwd && find ."
+# exit 0
 
 # Function to check if a resource exists and print status
 resource_exists() {
@@ -126,6 +133,8 @@ EXTERNAL_IP=$(gcloud compute instances describe $INSTANCE_NAME \
 
 echo "🌍 VM External IP: $EXTERNAL_IP"
 
+exit(0)
+
 # Begin staged deployment
 echo "🛠️ Starting staged deployment..."
 
@@ -140,7 +149,7 @@ curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-compose-plugin
-sudo usermod -aG docker $USER
+sudo usermod -aG docker $(whoami)
 STAGE1
 
     mark_stage_complete "docker_install"
@@ -149,16 +158,20 @@ fi
 # Stage 2: Clone and configure Sourcegraph
 if ! check_stage "sourcegraph_setup"; then
     echo "📦 Stage 2: Cloning and configuring Sourcegraph..."
-    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << 'STAGE2'
-# Clone Sourcegraph configuration from repository
-cd ~
-rm -rf sourcegraph
+    # First ensure we can create the sourcegraph directory
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="cd \$HOME && rm -rf sourcegraph"
+    
+    echo "Cloning repository..."
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << STAGE2
+set -e
+cd \$HOME
 git clone https://github.com/suchakr/sanchaya-sourcegraph.git sourcegraph
 cd sourcegraph
 
 # Update site-config.json with the VM's external IP
-sed -i "s|\"externalURL\": \"http://localhost:7080\"|\"externalURL\": \"http://$EXTERNAL_IP\"|g" \
-    ~/sourcegraph/config/site-config.json
+sed -i "s|\"externalURL\": \"http://localhost:7080\"|\"externalURL\": \"http://${EXTERNAL_IP}\"|g" \
+    config/site-config.json
+echo "Repository cloned and configured successfully"
 STAGE2
 
     mark_stage_complete "sourcegraph_setup"
@@ -167,40 +180,46 @@ fi
 # Stage 3: Setup data directories and permissions
 if ! check_stage "data_setup"; then
     echo "📦 Stage 3: Setting up data directories and permissions..."
-    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << 'STAGE3'
-# Setup data directory with proper permissions
-if ! mountpoint -q /sourcegraph-data; then
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << 'STAGE3'    # Setup data directory with proper permissions
+cd ~/sourcegraph
+if ! mountpoint -q ./sourcegraph-data; then
     echo "📁 Setting up data volume..."
     sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdb || true
-    sudo mkdir -p /sourcegraph-data
-    sudo mount -o discard,defaults /dev/sdb /sourcegraph-data
+    sudo mkdir -p ./sourcegraph-data
+    sudo mount -o discard,defaults /dev/sdb ./sourcegraph-data || true
     
     # Make mount persistent
     UUID=$(sudo blkid -s UUID -o value /dev/sdb)
-    echo "UUID=$UUID /sourcegraph-data ext4 discard,defaults,nofail 0 2" | sudo tee -a /etc/fstab
+    # Use absolute path in fstab but we'll still use relative paths in the script
+    echo "UUID=$UUID $(pwd)/sourcegraph-data ext4 discard,defaults,nofail 0 2" | sudo tee -a /etc/fstab
 fi
 
 # Create and set proper permissions for data directories
 echo "📂 Setting up data directories with correct permissions..."
-sudo mkdir -p /sourcegraph-data/{gitserver,pgsql,codeintel-db,codeinsights-db,redis-cache,redis-store,blobstore,zoekt,caddy,prometheus}
+# Check frontend logs
+docker compose -f docker-compose.yaml -f docker-compose.override.yml -f docker-compose.resource.yml logs sourcegraph-frontend-0sudo mkdir -p ./sourcegraph-data/{gitserver,pgsql,codeintel-db,redis-cache,redis-store,blobstore,zoekt,caddy,prometheus}
+
+# Setup PostgreSQL directories with proper structure and permissions
+sudo mkdir -p ./sourcegraph-data/codeinsights-db/pgdata/{base,global,pg_commit_ts,pg_dynshmem,pg_logical,pg_multixact,pg_notify,pg_replslot,pg_serial,pg_snapshots,pg_stat,pg_stat_tmp,pg_subtrans,pg_tblspc,pg_twophase,pg_wal,pg_xact}
 
 # Set correct permissions for database directories
-sudo chown -R 999:999 /sourcegraph-data/pgsql
-sudo chown -R 999:999 /sourcegraph-data/codeintel-db
-sudo chown -R 999:999 /sourcegraph-data/codeinsights-db
+sudo chown -R 999:999 ./sourcegraph-data/pgsql
+sudo chown -R 999:999 ./sourcegraph-data/codeintel-db
+sudo chown -R 999:999 ./sourcegraph-data/codeinsights-db
+sudo chmod -R 700 ./sourcegraph-data/codeinsights-db/pgdata
 
 # Set permissions for other directories
-sudo chown -R $USER:$USER /sourcegraph-data/gitserver
-sudo chown -R $USER:$USER /sourcegraph-data/redis-cache
-sudo chown -R $USER:$USER /sourcegraph-data/redis-store
-sudo chown -R $USER:$USER /sourcegraph-data/blobstore
-sudo chown -R $USER:$USER /sourcegraph-data/zoekt
-sudo chown -R $USER:$USER /sourcegraph-data/caddy
-sudo chown -R $USER:$USER /sourcegraph-data/prometheus
+sudo chown -R $USER:$USER ./sourcegraph-data/gitserver
+sudo chown -R $USER:$USER ./sourcegraph-data/redis-cache
+sudo chown -R $USER:$USER ./sourcegraph-data/redis-store
+sudo chown -R $USER:$USER ./sourcegraph-data/blobstore
+sudo chown -R $USER:$USER ./sourcegraph-data/zoekt
+sudo chown -R $USER:$USER ./sourcegraph-data/caddy
+sudo chown -R $USER:$USER ./sourcegraph-data/prometheus
 
 # Setup logging directory for spot events
-sudo mkdir -p /sourcegraph-data/logs
-sudo chown -R $USER:$USER /sourcegraph-data/logs
+sudo mkdir -p ./sourcegraph-data/logs
+sudo chown -R $USER:$USER ./sourcegraph-data/logs
 STAGE3
 
     mark_stage_complete "data_setup"
@@ -212,8 +231,9 @@ if ! check_stage "service_setup"; then
     gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << 'STAGE4'
 
 # Setup logging directory for spot events
-sudo mkdir -p /sourcegraph-data/logs
-sudo chown -R $USER:$USER /sourcegraph-data/logs
+cd ~/sourcegraph
+sudo mkdir -p ./sourcegraph-data/logs
+sudo chown -R $USER:$USER ./sourcegraph-data/logs
 
 # Setup automatic restart with IP monitoring
 cat > /tmp/sourcegraph-startup.sh << 'EOFSCRIPT'
@@ -222,7 +242,7 @@ set -e
 
 # Function to log events with timestamp
 log_event() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> /sourcegraph-data/logs/spot_events.log
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> ./sourcegraph-data/logs/spot_events.log
 }
 
 # Function to get current static IP
@@ -248,8 +268,8 @@ check_health() {
 }
 
 # Ensure data volume is mounted
-if ! mountpoint -q /sourcegraph-data; then
-    sudo mount -o discard,defaults /dev/sdb /sourcegraph-data
+if ! mountpoint -q ./sourcegraph-data; then
+    sudo mount -o discard,defaults /dev/sdb ./sourcegraph-data
     log_event "Mounted data volume"
 fi
 
@@ -285,7 +305,7 @@ chmod +x /tmp/sourcegraph-startup.sh
 sudo mv /tmp/sourcegraph-startup.sh /usr/local/bin/
 
 # Setup systemd service for automatic startup and recovery
-cat > /tmp/sourcegraph.service << 'EOF'
+cat > /tmp/sourcegraph.service << EOF
 [Unit]
 Description=Sourcegraph Service
 After=docker.service network-online.target
@@ -293,7 +313,9 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=$USER
+User=$(whoami)
+WorkingDirectory=/home/$(whoami)/sourcegraph
+Environment=HOME=/home/$(whoami)
 ExecStart=/usr/local/bin/sourcegraph-startup.sh
 Restart=always
 RestartSec=10
@@ -334,4 +356,4 @@ echo "⚠️  Note: It may take a few minutes for all services to start up compl
 echo "📊 Monitor deployment:"
 echo "   - Check status: gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='cd ~/sourcegraph && docker compose ps'"
 echo "   - View logs: gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='cd ~/sourcegraph && docker compose logs -f'"
-echo "   - Check spot events: gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='cat /sourcegraph-data/logs/spot_events.log'"
+echo "   - Check spot events: gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='cd ~/sourcegraph && cat ./sourcegraph-data/logs/spot_events.log'"
