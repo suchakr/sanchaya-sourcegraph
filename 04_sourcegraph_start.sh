@@ -10,10 +10,20 @@ fi
 
 cd $HOME/sanchaya-sourcegraph
 
+# Clean up any existing Docker resources to prevent conflicts
+echo "Cleaning up any existing Docker resources..."
+sudo docker-compose down --volumes || true
+sudo docker rm -f $(sudo docker ps -aq) || true
+
+# Create the sourcegraph-data directory if it doesn't exist
+mkdir -p ./sourcegraph-data/codeinsights-db
+
 # Pull the latest images
+echo "Pulling latest Docker images..."
 sudo docker-compose pull
 
 # Start the services
+echo "Starting Sourcegraph services..."
 sudo docker-compose up -d
 
 # Wait for services to be healthy
