@@ -21,7 +21,7 @@ run_stage() {
     local stage=$1
     local script_name=$2
     echo "${YELLOW}Running $script_name...${NC}"
-    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="sudo /bin/bash ~/$script_name"
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="cd ~/sanchaya-sourcegraph && sudo /bin/bash ./$script_name"
 }
 
 # Step 2: Run each stage in sequence
