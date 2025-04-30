@@ -9,6 +9,19 @@ MACHINE_TYPE="e2-standard-8"  # Increased from e2-standard-4 for better performa
 DATA_DISK_NAME="sourcegraph-data"
 DATA_DISK_SIZE="100GB"
 STATIC_IP_NAME="sourcegraph-static-ip"
+GITHUB_REPO="https://github.com/suchakr/sanchaya-sourcegraph.git"
+
+# Checkpoint management functions
+check_stage() {
+    local stage=$1
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="[[ -f /sourcegraph-data/.stage_${stage}_complete ]]"
+    return $?
+}
+
+mark_stage_complete() {
+    local stage=$1
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="touch /sourcegraph-data/.stage_${stage}_complete"
+}
 
 # Function to check if a resource exists and print status
 resource_exists() {
@@ -113,64 +126,48 @@ EXTERNAL_IP=$(gcloud compute instances describe $INSTANCE_NAME \
 
 echo "🌍 VM External IP: $EXTERNAL_IP"
 
-# Create a temporary directory for modified configs
-TEMP_DIR=$(mktemp -d)
-cp -r . $TEMP_DIR/
+# Begin staged deployment
+echo "🛠️ Starting staged deployment..."
 
-# Update site-config.json with the VM's external IP
-echo "🔧 Updating site configuration..."
-sed -i '' "s|\"externalURL\": \"http://localhost:7080\"|\"externalURL\": \"http://$EXTERNAL_IP\"|g" \
-    $TEMP_DIR/config/site-config.json
-
-# Create tar archive of the configuration
-echo "📦 Creating deployment package..."
-tar -czf sourcegraph-deploy.tar.gz -C $TEMP_DIR .
-
-# Copy files to VM
-echo "📤 Copying files to VM..."
-gcloud compute scp sourcegraph-deploy.tar.gz $INSTANCE_NAME:~ --zone=$ZONE
-
-# Create resource limits configuration
-cat > $TEMP_DIR/docker-compose.resource.yml << 'EOF'
-version: '2.4'
-services:
-  sourcegraph-frontend-0:
-    cpus: 0.8
-  sourcegraph-frontend-internal:
-    cpus: 0.8
-  gitserver-0:
-    cpus: 0.5
-  searcher-0:
-    cpus: 0.5
-  symbols-0:
-    cpus: 0.5
-  repo-updater:
-    cpus: 0.5
-  precise-code-intel-worker:
-    cpus: 0.5
-  worker:
-    cpus: 0.5
-EOF
-
-# Copy resource limits configuration to VM
-gcloud compute scp $TEMP_DIR/docker-compose.resource.yml $INSTANCE_NAME:~/sourcegraph/ --zone=$ZONE
-
-# Setup VM with improved database permissions and service monitoring
-echo "🛠️ Setting up VM environment..."
-gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" << 'ENDSSH'
-# Install Docker and Docker Compose
-sudo apt-get update
-sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+# Stage 1: Install Docker and dependencies
+if ! check_stage "docker_install"; then
+    echo "📦 Stage 1: Installing Docker and dependencies..."
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << 'STAGE1'
+export DEBIAN_FRONTEND=noninteractive
+sudo -E apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common git
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-compose-plugin
 sudo usermod -aG docker $USER
+STAGE1
 
-# Setup Sourcegraph directory structure
-mkdir -p ~/sourcegraph
-tar -xzf sourcegraph-deploy.tar.gz -C ~/sourcegraph
+    mark_stage_complete "docker_install"
+fi
 
+# Stage 2: Clone and configure Sourcegraph
+if ! check_stage "sourcegraph_setup"; then
+    echo "📦 Stage 2: Cloning and configuring Sourcegraph..."
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << 'STAGE2'
+# Clone Sourcegraph configuration from repository
+cd ~
+rm -rf sourcegraph
+git clone https://github.com/suchakr/sanchaya-sourcegraph.git sourcegraph
+cd sourcegraph
+
+# Update site-config.json with the VM's external IP
+sed -i "s|\"externalURL\": \"http://localhost:7080\"|\"externalURL\": \"http://$EXTERNAL_IP\"|g" \
+    ~/sourcegraph/config/site-config.json
+STAGE2
+
+    mark_stage_complete "sourcegraph_setup"
+fi
+
+# Stage 3: Setup data directories and permissions
+if ! check_stage "data_setup"; then
+    echo "📦 Stage 3: Setting up data directories and permissions..."
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << 'STAGE3'
 # Setup data directory with proper permissions
 if ! mountpoint -q /sourcegraph-data; then
     echo "📁 Setting up data volume..."
@@ -179,7 +176,8 @@ if ! mountpoint -q /sourcegraph-data; then
     sudo mount -o discard,defaults /dev/sdb /sourcegraph-data
     
     # Make mount persistent
-    echo UUID=$(sudo blkid -s UUID -o value /dev/sdb) /sourcegraph-data ext4 discard,defaults,nofail 0 2 | sudo tee -a /etc/fstab
+    UUID=$(sudo blkid -s UUID -o value /dev/sdb)
+    echo "UUID=$UUID /sourcegraph-data ext4 discard,defaults,nofail 0 2" | sudo tee -a /etc/fstab
 fi
 
 # Create and set proper permissions for data directories
@@ -203,9 +201,22 @@ sudo chown -R $USER:$USER /sourcegraph-data/prometheus
 # Setup logging directory for spot events
 sudo mkdir -p /sourcegraph-data/logs
 sudo chown -R $USER:$USER /sourcegraph-data/logs
+STAGE3
+
+    mark_stage_complete "data_setup"
+fi
+
+# Stage 4: Configure startup script and systemd service
+if ! check_stage "service_setup"; then
+    echo "📦 Stage 4: Configuring startup script and systemd service..."
+    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="bash -s" -- << 'STAGE4'
+
+# Setup logging directory for spot events
+sudo mkdir -p /sourcegraph-data/logs
+sudo chown -R $USER:$USER /sourcegraph-data/logs
 
 # Setup automatic restart with IP monitoring
-cat > /tmp/sourcegraph-startup.sh << 'EOF'
+cat > /tmp/sourcegraph-startup.sh << 'EOFSCRIPT'
 #!/bin/bash
 set -e
 
@@ -268,7 +279,7 @@ while true; do
         fi
     fi
 done
-EOF
+EOFSCRIPT
 
 chmod +x /tmp/sourcegraph-startup.sh
 sudo mv /tmp/sourcegraph-startup.sh /usr/local/bin/
@@ -296,7 +307,10 @@ sudo mv /tmp/sourcegraph.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable sourcegraph.service
 sudo systemctl start sourcegraph.service
-ENDSSH
+STAGE4
+
+    mark_stage_complete "service_setup"
+fi
 
 # Create firewall rules if they don't exist
 if ! gcloud compute firewall-rules describe sourcegraph-http-https &>/dev/null; then
