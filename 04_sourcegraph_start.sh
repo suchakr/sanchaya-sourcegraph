@@ -8,7 +8,7 @@ if [ -f ~/sourcegraph/checkpoints/04_sourcegraph_start.done ]; then
     exit 0
 fi
 
-cd $HOME/deploy-sourcegraph-docker
+cd $HOME/sanchaya-sourcegraph
 
 # Pull the latest images
 sudo docker-compose pull

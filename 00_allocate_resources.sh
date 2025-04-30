@@ -75,18 +75,18 @@ if ! resource_exists "gcloud compute firewall-rules describe" "allow-sourcegraph
         --target-tags=http-server,https-server
 fi
 
-# Copy stage scripts to the VM
-echo "📝 Copying installation scripts to VM..."
-for script in 01_docker_install.sh 02_disk_setup.sh 03_sourcegraph_prep.sh 04_sourcegraph_start.sh; do
-    gcloud compute scp --zone=$ZONE $script $INSTANCE_NAME:~
-    gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="chmod +x ~/$script"
-done
+# Install git and clone the repository on the VM
+echo "📦 Installing git and cloning repository on VM..."
+REPO_URL="https://github.com/suchakr/sanchaya-sourcegraph.git"
+DEPLOY_DIR="~/sanchaya-sourcegraph"
+
+gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="sudo apt-get update && sudo apt-get install -y git && rm -rf $DEPLOY_DIR && git clone $REPO_URL $DEPLOY_DIR && chmod +x $DEPLOY_DIR/*.sh"
 
 echo "✅ Resource allocation complete!"
 echo "🌐 Static IP: $STATIC_IP"
 echo ""
 echo "You can now:"
 echo "1. SSH into the VM:        gcloud compute ssh $INSTANCE_NAME --zone=$ZONE"
-echo "2. Run stages manually:    ./01_docker_install.sh"
+echo "2. Run stages manually:    cd ~/sanchaya-sourcegraph && ./01_docker_install.sh"
 echo "   or"
-echo "3. Use the wrapper:        ./deploy.sh"
+echo "3. Use the wrapper:        cd ~/sanchaya-sourcegraph && ./deploy.sh"

@@ -8,23 +8,17 @@ if [ -f ~/sourcegraph/checkpoints/03_sourcegraph_prep.done ]; then
     exit 0
 fi
 
-# Clone the customized Sourcegraph Docker Compose repository
-DEPLOY_DIR="$HOME/deploy-sourcegraph-docker"
-REPO_URL="https://github.com/suchakr/sanchaya-sourcegraph.git"
-
-# Ensure clean state
-rm -rf "${DEPLOY_DIR}"
-git clone "${REPO_URL}" "${DEPLOY_DIR}"
-cd "${DEPLOY_DIR}"
+# The repository is already cloned by the 00_allocate_resources.sh script
+# We just need to create the necessary directories for Sourcegraph data
 
 # Create necessary directories for Sourcegraph data
 sudo mkdir -p /mnt/docker-data/sourcegraph-data/{gitserver,repos,codeintel-db,pgsql}
 sudo chown -R 999:999 /mnt/docker-data/sourcegraph-data/{gitserver,repos,codeintel-db,pgsql}
 
 # Copy our local configuration if available
-if [ -d "$HOME/sourcegraph-config" ]; then
+if [ -d "$HOME/sanchaya-sourcegraph/config" ]; then
     sudo mkdir -p /etc/sourcegraph
-    sudo cp -r $HOME/sourcegraph-config/* /etc/sourcegraph/
+    sudo cp -r $HOME/sanchaya-sourcegraph/config/* /etc/sourcegraph/
 fi
 
 # Create checkpoint
