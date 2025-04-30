@@ -13,8 +13,13 @@ services:
     volumes:
       - ./sourcegraph-data/codeintel-db:/var/lib/postgresql/data
   codeinsights-db:
+    # Replace the named volume with a bind mount, don't add an additional mount
     volumes:
-      - ./sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
+      - type: bind
+        source: ./sourcegraph-data/codeinsights-db
+        target: /var/lib/postgresql/data
+        volume:
+          nocopy: true
   redis-cache:
     volumes:
       - ./sourcegraph-data/redis-cache:/redis-data
@@ -33,3 +38,12 @@ services:
   prometheus:
     volumes:
       - ./sourcegraph-data/prometheus:/prometheus
+      
+# Override/disable the volumes defined in the main docker-compose.yaml file
+volumes:
+  codeinsights-db:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./sourcegraph-data/codeinsights-db
+      o: bind
