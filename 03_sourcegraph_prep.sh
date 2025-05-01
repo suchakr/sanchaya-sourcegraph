@@ -18,9 +18,24 @@ mkdir -p ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,red
 sudo chown -R 999:999 ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
 sudo chmod -R 755 ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
 
+sudo chown -R 70:70 ./sourcegraph-data/codeinsights-db
+sudo chmod -R 750 ./sourcegraph-data/codeinsights-db
+
+sudo chown -R 70:70 ./sourcegraph-data/codeintel-db
+sudo chmod -R 750 ./sourcegraph-data/codeintel-db
+
+sudo chown -R 70:70 ./sourcegraph-data/pgsql
+sudo chmod -R 750 ./sourcegraph-data/pgsql
+
 # Set ownership and permissions for Caddy (needs root and stricter permissions for security)
 sudo chown -R root:root ./sourcegraph-data/caddy
 sudo chmod -R 755 ./sourcegraph-data/caddy
+
+sudo chown -R root:root ./sourcegraph-data/prometheus
+sudo chmod -R 755 ./sourcegraph-data/prometheus
+
+sudo chown -R root:root ./sourcegraph-data/zoekt
+sudo chmod -R 755 ./sourcegraph-data/zoekt
 
 # Create checkpoint
 mkdir -p ./.checkpoints
