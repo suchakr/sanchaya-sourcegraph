@@ -2,43 +2,37 @@ version: '3.7'
 services:
   caddy:
     volumes:
-      - ./sourcegraph-data/caddy:/etc/caddy
+      - /mnt/docker-data/sourcegraph-data/caddy:/etc/caddy
   gitserver-0:
     volumes:
-      - ./sourcegraph-data/gitserver-0:/data/repos
+      - /mnt/docker-data/sourcegraph-data/gitserver-0:/data/repos
   pgsql:
     volumes:
-      - ./sourcegraph-data/pgsql:/var/lib/postgresql/data
+      - /mnt/docker-data/sourcegraph-data/pgsql:/var/lib/postgresql/data
   codeintel-db:
     volumes:
-      - ./sourcegraph-data/codeintel-db:/var/lib/postgresql/data
+      - /mnt/docker-data/sourcegraph-data/codeintel-db:/var/lib/postgresql/data
   codeinsights-db:
-    # Replace the named volume with a bind mount, don't add an additional mount
     volumes:
-      - ./sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
-      # - type: bind
-      #   source: ./sourcegraph-data/codeinsights-db
-      #   target: /var/lib/postgresql/data
-      #   volume:
-      #     nocopy: true
+      - /mnt/docker-data/sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
   redis-cache:
     volumes:
-      - ./sourcegraph-data/redis-cache:/redis-data
+      - /mnt/docker-data/sourcegraph-data/redis-cache:/redis-data
   redis-store:
     volumes:
-      - ./sourcegraph-data/redis-store:/redis-data
+      - /mnt/docker-data/sourcegraph-data/redis-store:/redis-data
   blobstore:
     volumes:
-      - ./sourcegraph-data/blobstore:/data
+      - /mnt/docker-data/sourcegraph-data/blobstore:/data
   zoekt-indexserver-0:
     volumes:
-      - ./sourcegraph-data/zoekt:/data/index
+      - /mnt/docker-data/sourcegraph-data/zoekt:/data/index
   zoekt-webserver-0:
     volumes:
-      - ./sourcegraph-data/zoekt:/data/index
+      - /mnt/docker-data/sourcegraph-data/zoekt:/data/index
   prometheus:
     volumes:
-      - ./sourcegraph-data/prometheus:/prometheus
+      - /mnt/docker-data/sourcegraph-data/prometheus:/prometheus
       
 # Override/disable the volumes defined in the main docker-compose.yaml file
 volumes:
@@ -46,5 +40,5 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: ./sourcegraph-data/codeinsights-db
+      device: /mnt/docker-data/sourcegraph-data/codeinsights-db
       o: bind

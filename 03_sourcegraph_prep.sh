@@ -10,32 +10,40 @@ fi
 
 # The repository is already cloned by the 00_allocate_resources.sh script
 # We just need to create the necessary directories for Sourcegraph data
-
+TARGET_DIR=/mnt/docker-data/sourcegraph-data
+if [ ! -d "$TARGET_DIR" ]; then
+    echo "Creating target directory: $TARGET_DIR"
+    mkdir -p "$TARGET_DIR"
+else
+    echo "Target directory already exists: $TARGET_DIR"
+fi
+# Check if the sourcegraph-data directory is empty
 # Create necessary directories for Sourcegraph data
-mkdir -p ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db,caddy}
+mkdir -p $TARGET_DIR/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db,caddy}
 
 # Set ownership for services running as UID 999
-sudo chown -R 999:999 ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
-sudo chmod -R 755 ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
+sudo chown -R 999:999 $TARGET_DIR/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
+sudo chmod -R 755 $TARGET_DIR/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
+sudo chmod -R 777 $TARGET_DIR/gitserver-0
 
-sudo chown -R 70:70 ./sourcegraph-data/codeinsights-db
-sudo chmod -R 750 ./sourcegraph-data/codeinsights-db
+sudo chown -R 70:70 $TARGET_DIR/codeinsights-db
+sudo chmod -R 750 $TARGET_DIR/codeinsights-db
 
-sudo chown -R 70:70 ./sourcegraph-data/codeintel-db
-sudo chmod -R 750 ./sourcegraph-data/codeintel-db
+sudo chown -R 70:70 $TARGET_DIR/codeintel-db
+sudo chmod -R 750 $TARGET_DIR/codeintel-db
 
-sudo chown -R 70:70 ./sourcegraph-data/pgsql
-sudo chmod -R 750 ./sourcegraph-data/pgsql
+sudo chown -R 70:70 $TARGET_DIR/pgsql
+sudo chmod -R 750 $TARGET_DIR/pgsql
 
 # Set ownership and permissions for Caddy (needs root and stricter permissions for security)
-sudo chown -R root:root ./sourcegraph-data/caddy
-sudo chmod -R 755 ./sourcegraph-data/caddy
+sudo chown -R root:root $TARGET_DIR/caddy
+sudo chmod -R 755 $TARGET_DIR/caddy
 
-sudo chown -R root:root ./sourcegraph-data/prometheus
-sudo chmod -R 755 ./sourcegraph-data/prometheus
+sudo chown -R root:root $TARGET_DIR/prometheus
+sudo chmod -R 755 $TARGET_DIR/prometheus
 
-sudo chown -R root:root ./sourcegraph-data/zoekt
-sudo chmod -R 755 ./sourcegraph-data/zoekt
+sudo chown -R root:root $TARGET_DIR/zoekt
+sudo chmod -R 755 $TARGET_DIR/zoekt
 
 # Create checkpoint
 mkdir -p ./.checkpoints
