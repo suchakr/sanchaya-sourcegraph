@@ -712,8 +712,9 @@ services:
       retries: 10
       start_period: 1h
     volumes:
-      - 'codeinsights-db:/var/lib/postgresql/data/'
-      - '../codeinsights-db/conf:/conf/'
+      - ./sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
+      # - 'codeinsights-db:/var/lib/postgresql/data/'
+      # - '../codeinsights-db/conf:/conf/'
     networks:
       - sourcegraph
     restart: always

@@ -13,9 +13,14 @@ services:
     volumes:
       - ./sourcegraph-data/codeintel-db:/var/lib/postgresql/data
   codeinsights-db:
-    # Use a simple bind mount without the nocopy option
+    # Replace the named volume with a bind mount, don't add an additional mount
     volumes:
       - ./sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
+      # - type: bind
+      #   source: ./sourcegraph-data/codeinsights-db
+      #   target: /var/lib/postgresql/data
+      #   volume:
+      #     nocopy: true
   redis-cache:
     volumes:
       - ./sourcegraph-data/redis-cache:/redis-data
