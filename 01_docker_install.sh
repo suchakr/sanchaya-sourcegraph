@@ -3,12 +3,10 @@ set -euo pipefail
 
 echo "Stage 1: Installing Docker and dependencies..."
 
-# Setup directories with proper ownership
-SOURCEGRAPH_HOME="/home/$(whoami)/sourcegraph"
-sudo mkdir -p ${SOURCEGRAPH_HOME}/checkpoints
-sudo chown -R $(whoami):$(whoami) ${SOURCEGRAPH_HOME}
+# Setup checkpoints directory
+mkdir -p ./.checkpoints
 
-if [ -f ${SOURCEGRAPH_HOME}/checkpoints/01_docker_install.done ]; then
+if [ -f ./.checkpoints/01_docker_install.done ]; then
     echo "Stage 1 already completed."
     exit 0
 fi
@@ -44,5 +42,5 @@ sudo chmod +x /usr/local/bin/docker-compose
 sudo usermod -aG docker $USER
 
 # Create checkpoint
-touch ~/sourcegraph/checkpoints/01_docker_install.done
+touch ./.checkpoints/01_docker_install.done
 echo "✅ Stage 1: Docker installation complete"

@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo "Stage 3: Preparing Sourcegraph deployment..."
 
-if [ -f ~/sourcegraph/checkpoints/03_sourcegraph_prep.done ]; then
+if [ -f ./.checkpoints/03_sourcegraph_prep.done ]; then
     echo "Stage 3 already completed."
     exit 0
 fi
@@ -23,6 +23,6 @@ sudo chown -R root:root ./sourcegraph-data/caddy
 sudo chmod -R 755 ./sourcegraph-data/caddy
 
 # Create checkpoint
-mkdir -p ~/sourcegraph/checkpoints
-touch ~/sourcegraph/checkpoints/03_sourcegraph_prep.done
+mkdir -p ./.checkpoints
+touch ./.checkpoints/03_sourcegraph_prep.done
 echo "✅ Stage 3: Sourcegraph preparation complete"

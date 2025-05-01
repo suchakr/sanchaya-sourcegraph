@@ -3,12 +3,14 @@ set -euo pipefail
 
 echo "Stage 4: Starting Sourcegraph services..."
 
-if [ -f ~/sourcegraph/checkpoints/04_sourcegraph_start.done ]; then
+mkdir -p ./.checkpoints
+
+if [ -f ./.checkpoints/04_sourcegraph_start.done ]; then
     echo "Stage 4 already completed."
     exit 0
 fi
 
-cd $HOME/sanchaya-sourcegraph
+# We're already in the correct directory since the script is run from the project root
 
 # Clean up any existing Docker resources to prevent conflicts
 echo "Cleaning up any existing Docker resources..."
@@ -38,7 +40,6 @@ if ! sudo docker-compose ps | grep -q "Up"; then
 fi
 
 # Create checkpoint
-mkdir -p ~/sourcegraph/checkpoints
-touch ~/sourcegraph/checkpoints/04_sourcegraph_start.done
+touch ./.checkpoints/04_sourcegraph_start.done
 echo "✅ Stage 4: Sourcegraph services started successfully"
 echo "🌟 You can now access Sourcegraph at http://$(curl -s ifconfig.me):7080"

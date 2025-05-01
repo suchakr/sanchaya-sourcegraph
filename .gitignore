@@ -5,6 +5,7 @@
 volumes/
 sourcegraph-data/
 *.log
+.checkpoints/
 
 # Temporary files
 .DS_Store

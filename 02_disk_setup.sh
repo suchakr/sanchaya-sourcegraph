@@ -3,7 +3,9 @@ set -euo pipefail
 
 echo "Stage 2: Setting up persistent disk..."
 
-if [ -f ~/sourcegraph/checkpoints/02_disk_setup.done ]; then
+mkdir -p ./.checkpoints
+
+if [ -f ./.checkpoints/02_disk_setup.done ]; then
     echo "Stage 2 already completed."
     exit 0
 fi
@@ -40,5 +42,5 @@ echo '{
 sudo systemctl restart docker
 
 # Create checkpoint
-touch ~/sourcegraph/checkpoints/02_disk_setup.done
+touch ./.checkpoints/02_disk_setup.done
 echo "✅ Stage 2: Disk setup complete"
