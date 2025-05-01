@@ -13,13 +13,13 @@ fi
 TARGET_DIR=/mnt/docker-data/sourcegraph-data
 if [ ! -d "$TARGET_DIR" ]; then
     echo "Creating target directory: $TARGET_DIR"
-    mkdir -p "$TARGET_DIR"
+    sudo mkdir -p "$TARGET_DIR"
 else
     echo "Target directory already exists: $TARGET_DIR"
 fi
 # Check if the sourcegraph-data directory is empty
 # Create necessary directories for Sourcegraph data
-mkdir -p $TARGET_DIR/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db,caddy}
+sudo mkdir -p $TARGET_DIR/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db,caddy}
 
 # Set ownership for services running as UID 999
 sudo chown -R 999:999 $TARGET_DIR/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
