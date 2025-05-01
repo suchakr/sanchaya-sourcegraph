@@ -5,7 +5,7 @@ services:
       - ./sourcegraph-data/caddy:/etc/caddy
   gitserver-0:
     volumes:
-      - ./sourcegraph-data/gitserver:/data/repos
+      - ./sourcegraph-data/gitserver-0:/data/repos
   pgsql:
     volumes:
       - ./sourcegraph-data/pgsql:/var/lib/postgresql/data

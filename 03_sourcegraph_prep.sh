@@ -12,14 +12,15 @@ fi
 # We just need to create the necessary directories for Sourcegraph data
 
 # Create necessary directories for Sourcegraph data
-sudo mkdir -p /mnt/docker-data/sourcegraph-data/{gitserver,repos,codeintel-db,pgsql}
-sudo chown -R 999:999 /mnt/docker-data/sourcegraph-data/{gitserver,repos,codeintel-db,pgsql}
+mkdir -p ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db,caddy}
 
-# Copy our local configuration if available
-if [ -d "$HOME/sanchaya-sourcegraph/config" ]; then
-    sudo mkdir -p /etc/sourcegraph
-    sudo cp -r $HOME/sanchaya-sourcegraph/config/* /etc/sourcegraph/
-fi
+# Set ownership for services running as UID 999
+sudo chown -R 999:999 ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
+sudo chmod -R 755 ./sourcegraph-data/{gitserver-0,repos,codeintel-db,pgsql,prometheus,redis-store,redis-cache,zoekt,codeinsights-db}
+
+# Set ownership and permissions for Caddy (needs root and stricter permissions for security)
+sudo chown -R root:root ./sourcegraph-data/caddy
+sudo chmod -R 755 ./sourcegraph-data/caddy
 
 # Create checkpoint
 mkdir -p ~/sourcegraph/checkpoints
