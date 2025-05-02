@@ -241,8 +241,7 @@ services:
       - 'SRC_FRONTEND_INTERNAL=sourcegraph-frontend-internal:3090'
       - 'OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317'
     volumes:
-      # - 'gitserver-0:/data/repos'
-      - './sourcegraph-data/gitserver-0:/data/repos'
+      - 'gitserver-0:/data/repos'
 
     networks:
       - sourcegraph
@@ -714,8 +713,7 @@ services:
       retries: 10
       start_period: 1h
     volumes:
-      - ./sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
-      # - 'codeinsights-db:/var/lib/postgresql/data/'
+      - 'codeinsights-db:/var/lib/postgresql/data/'
       # - '../codeinsights-db/conf:/conf/'
     networks:
       - sourcegraph

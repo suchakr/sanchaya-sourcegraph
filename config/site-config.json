@@ -4,18 +4,14 @@
       "type": "builtin"
     }
   ],
-  "auth.allowSignup": false,
+  "auth.allowSignup": true,
   "auth.builtin": {
     "type": "builtin",
-    "allowSignup": false
+    "allowSignup": true
   },
   "email": {
     "address": "noreply@example.com",
     "smtp": false
-  },
-  "auth.adminUsers": ["admin"],
-  "auth.adminPasswords": {
-    "admin": "Adminadmin3339"
   },
   "auth.roleDefinitions": {
     "readOnly": {

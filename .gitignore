@@ -10,7 +10,7 @@ sourcegraph-data/
 # Temporary files
 .DS_Store
 *.swp
-*~
+*~*
 
 # Compressed archives
 *.tar.gz

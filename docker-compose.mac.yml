@@ -1,0 +1,62 @@
+version: '3.7'
+services:
+  caddy:
+    volumes:
+      - ./sourcegraph-data/caddy:/etc/caddy
+  gitserver-0:
+    volumes:
+      - ./sourcegraph-data/gitserver-0:/data/repos
+  pgsql:
+    volumes:
+      - ./sourcegraph-data/pgsql:/var/lib/postgresql/data
+  codeintel-db:
+    volumes:
+      - ./sourcegraph-data/codeintel-db:/var/lib/postgresql/data
+  codeinsights-db:
+    volumes:
+      - ./sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
+  redis-cache:
+    volumes:
+      - ./sourcegraph-data/redis-cache:/redis-data
+  redis-store:
+    volumes:
+      - ./sourcegraph-data/redis-store:/redis-data
+  blobstore:
+    volumes:
+      - ./sourcegraph-data/blobstore:/data
+  zoekt-indexserver-0:
+    volumes:
+      - ./sourcegraph-data/zoekt:/data/index
+  zoekt-webserver-0:
+    volumes:
+      - ./sourcegraph-data/zoekt:/data/index
+  prometheus:
+    volumes:
+      - ./sourcegraph-data/prometheus:/prometheus
+  searcher-0:
+    volumes:
+      - ./sourcegraph-data/searcher-0:/mnt/cache
+  repo-updater:
+    volumes:
+      - ./sourcegraph-data/repo-updater:/mnt/cache
+  sourcegraph-frontend-0:
+    volumes:
+      - ./sourcegraph-data/sourcegraph-frontend-0:/mnt/cache
+  sourcegraph-frontend-internal:
+    volumes:
+      - ./sourcegraph-data/sourcegraph-frontend-internal:/mnt/cache
+  symbols-0:
+    volumes:
+      - ./sourcegraph-data/symbols-0:/mnt/cache
+  worker:
+    volumes:
+      - ./sourcegraph-data/worker:/mnt/cache
+      
+# Override/disable the volumes defined in the main docker-compose.yaml file
+volumes:
+  codeinsights-db:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./sourcegraph-data/codeinsights-db
+      o: bind

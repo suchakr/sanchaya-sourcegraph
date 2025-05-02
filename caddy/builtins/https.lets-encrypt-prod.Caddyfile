@@ -1,0 +1,8 @@
+{
+    email {$SG_ACME_EMAIL}
+    storage file /caddy-storage
+}
+
+{$SG_SITE_ADDRESS} {
+    reverse_proxy sourcegraph-frontend-0:3080
+}
