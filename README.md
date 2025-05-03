@@ -42,23 +42,28 @@ Ensure you have Docker Engine and Docker Compose installed on your GCP VM instan
 
 1. Clone this repository
 2. Make sure `/mnt/docker-data` exists (created by `03_sourcegraph_prep.sh`)
-3. Start the deployment with the GCP environment:
+3. Run the script to start Sourcegraph (with HTTP or HTTPS):
 
 ```sh
-docker compose --env-file .env.gcp up -d
+# Start with HTTP (default) - for testing
+./04_sourcegraph_start.sh
+
+# Start with HTTPS - for production
+./04_sourcegraph_start.sh https
 ```
 
-> ⚠️ **Important**: Running `docker compose up` on GCP without specifying `.env.gcp` will use the default `.env` file,
-> which configures HTTP on port 7080 instead of HTTPS. Always explicitly use `.env.gcp` for production deployments.
->
-
-4. Access Sourcegraph at https://YOUR_VM_EXTERNAL_IP
-
+4. Access Sourcegraph at:
+   - HTTP mode: http://YOUR_VM_EXTERNAL_IP:7080
+   - HTTPS mode: https://YOUR_VM_EXTERNAL_IP
 
 5. To stop the deployment, run:
 
 ```sh
-docker compose down
+# Stop while preserving data volumes
+./05_sourcegraph_stop.sh
+
+# Stop and remove all data volumes
+./05_sourcegraph_stop.sh -v
 ```
 
 or to remove volumes:

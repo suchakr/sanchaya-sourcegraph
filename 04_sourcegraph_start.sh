@@ -28,32 +28,62 @@ echo "📍 Detected external IP: $EXTERNAL_IP"
 echo "Pulling latest Docker images..."
 sudo docker-compose pull
 
+# Ensure config directory exists
+mkdir -p ./config
+
 if [[ "$PROTOCOL" == "https" ]]; then
     echo "🔒 Setting up HTTPS deployment..."
     
-    # Create .env.https from .env.gcp template
-    sudo cp .env.gcp .env.https
+    # Create .env from .env.gcp template
+    sudo cp .env.gcp .env
     
-    # Update the .env.https file with the correct IP address
-    sudo sed -i "s|SG_PORT=443|SG_PORT=443|g" .env.https
-    sudo sed -i "s|SG_EXTERNAL_URL=https://YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_EXTERNAL_URL=https://$EXTERNAL_IP|g" .env.https
-    sudo sed -i "s|SG_SITE_ADDRESS=YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_SITE_ADDRESS=$EXTERNAL_IP|g" .env.https
-    sudo sed -i "s|SG_HTTPS_ENABLED=true|SG_HTTPS_ENABLED=true|g" .env.https
-    
-    echo "🚀 Starting Sourcegraph services with HTTPS configuration..."
-    sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml --env-file .env.https up -d
+    # Update the .env file with the correct IP address for HTTPS
+    sudo sed -i "s|SG_PORT=443|SG_PORT=443|g" .env
+    sudo sed -i "s|SG_EXTERNAL_URL=https://YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_EXTERNAL_URL=https://$EXTERNAL_IP|g" .env
+    sudo sed -i "s|SG_SITE_ADDRESS=YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_SITE_ADDRESS=$EXTERNAL_IP|g" .env
+    sudo sed -i "s|SG_HTTPS_ENABLED=true|SG_HTTPS_ENABLED=true|g" .env
     
     FINAL_URL="https://$EXTERNAL_IP"
-    echo "⚠️  Note: It may take a few minutes for Let's Encrypt to issue a certificate."
-    echo "⚠️  Make sure ports 80 and 443 are open in your firewall."
 else
     echo "🔓 Setting up HTTP deployment..."
     
-    # For HTTP, we'll use the default .env file
-    echo "🚀 Starting Sourcegraph services with HTTP configuration..."
-    sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+    # Create .env from .env.gcp template
+    sudo cp .env.gcp .env
+    
+    # Update the .env file with the correct IP address for HTTP
+    sudo sed -i "s|SG_PORT=443|SG_PORT=7080|g" .env
+    sudo sed -i "s|SG_EXTERNAL_URL=https://YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_EXTERNAL_URL=http://$EXTERNAL_IP:7080|g" .env
+    sudo sed -i "s|SG_SITE_ADDRESS=YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_SITE_ADDRESS=$EXTERNAL_IP|g" .env
+    sudo sed -i "s|SG_HTTPS_ENABLED=true|SG_HTTPS_ENABLED=false|g" .env
     
     FINAL_URL="http://$EXTERNAL_IP:7080"
+fi
+
+# Update site-config.json with the correct external URL
+echo "🔄 Updating site-config.json with $PROTOCOL URL..."
+if [ -f ./config/site-config.json ]; then
+    # If file exists, update the externalURL
+    if grep -q "externalURL" ./config/site-config.json; then
+        sudo sed -i "s|\"externalURL\": \"[^\"]*\"|\"externalURL\": \"$FINAL_URL\"|g" ./config/site-config.json
+    else
+        # If externalURL doesn't exist, add it before the last closing brace
+        sudo sed -i "s|}|,\n  \"externalURL\": \"$FINAL_URL\"\n}|g" ./config/site-config.json
+    fi
+else
+    # If file doesn't exist, create it with basic configuration
+    echo '{
+  "externalURL": "'$FINAL_URL'",
+  "auth.public": true,
+  "auth.accessTokens.allow": "no-user-credentials"
+}' | sudo tee ./config/site-config.json > /dev/null
+fi
+
+echo "🚀 Starting Sourcegraph services with ${PROTOCOL^^} configuration..."
+sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+
+if [[ "$PROTOCOL" == "https" ]]; then
+    echo "⚠️  Note: It may take a few minutes for Let's Encrypt to issue a certificate."
+    echo "⚠️  Make sure ports 80 and 443 are open in your firewall."
 fi
 
 # Wait for services to be healthy

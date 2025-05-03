@@ -1,6 +1,9 @@
 # Environment files with sensitive data
 .env.local
 
+# generated jit bt 04 script
+.env.https 
+
 # Data volumes and runtime files
 volumes/
 sourcegraph-data/
@@ -14,3 +17,4 @@ sourcegraph-data/
 
 # Compressed archives
 *.tar.gz
+*.bak

@@ -4,10 +4,10 @@
       "type": "builtin"
     }
   ],
-  "auth.allowSignup": true,
+  "auth.allowSignup": false,
   "auth.builtin": {
     "type": "builtin",
-    "allowSignup": true
+    "allowSignup": false
   },
   "email": {
     "address": "noreply@example.com",
@@ -21,6 +21,8 @@
       ]
     }
   },
+  "auth.public": true,
+  "auth.accessTokens.allow": "no-user-credentials",
   "externalURL": "http://localhost:7080",
   "gcpexternalURL": "https://YOUR_GCP_INSTANCE_IP_OR_DOMAIN",
   "search.index.enabled": true,

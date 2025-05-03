@@ -42,6 +42,7 @@ services:
   sourcegraph-frontend-0:
     volumes:
       - ./sourcegraph-data/sourcegraph-frontend-0:/mnt/cache
+      - ./config:/etc/sourcegraph
   sourcegraph-frontend-internal:
     volumes:
       - ./sourcegraph-data/sourcegraph-frontend-internal:/mnt/cache

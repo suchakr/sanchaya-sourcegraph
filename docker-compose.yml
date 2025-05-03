@@ -109,7 +109,7 @@ services:
       # - '/LOCAL/KEY/PATH.key:/sourcegraph.key'
     ports:
       - '0.0.0.0:${SG_PORT:-7080}:${SG_PORT:-7080}'
-      - '0.0.0.0:443:443'
+      # - '0.0.0.0:443:443'
     networks:
       - sourcegraph
     restart: always
@@ -713,8 +713,9 @@ services:
       retries: 10
       start_period: 1h
     volumes:
-      - 'codeinsights-db:/var/lib/postgresql/data/'
-      # - '../codeinsights-db/conf:/conf/'
+      - ./sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
+      # - 'codeinsights-db:/var/lib/postgresql/data/'
+      # - '../codeinsights-db/conf:/conf/':`
     networks:
       - sourcegraph
     restart: always
