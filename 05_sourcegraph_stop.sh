@@ -20,10 +20,10 @@ echo "🛑 Stopping Sourcegraph services..."
 # Stop the containers
 if [ "$REMOVE_VOLUMES" = true ]; then
   echo "Stopping and removing containers, networks, images, and volumes..."
-  sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml down --volumes --remove-orphans
+  sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.resource.yml down --volumes --remove-orphans
 else
   echo "Stopping and removing containers, networks, and images (preserving volumes)..."
-  sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml down --remove-orphans
+  sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.resource.yml down --remove-orphans
 fi
 
 # Clean up the checkpoint from 04_sourcegraph_start.sh

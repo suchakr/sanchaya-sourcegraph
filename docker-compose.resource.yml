@@ -1,18 +1,48 @@
 version: '2.4'
 services:
+  # Frontend services
   sourcegraph-frontend-0:
-    cpus: 0.8
+    cpus: 0.5
   sourcegraph-frontend-internal:
-    cpus: 0.8
+    cpus: 0.5
+  
+  # Code intelligence and search services
   gitserver-0:
-    cpus: 0.5
+    cpus: 0.3
   searcher-0:
-    cpus: 0.5
+    cpus: 0.3
   symbols-0:
-    cpus: 0.5
+    cpus: 0.2
   repo-updater:
-    cpus: 0.5
+    cpus: 0.2
   precise-code-intel-worker:
-    cpus: 0.5
+    cpus: 0.2
   worker:
-    cpus: 0.5
+    cpus: 0.2
+  zoekt-indexserver-0:
+    cpus: 0.3
+  zoekt-webserver-0:
+    cpus: 0.3
+    
+  # Additional services
+  migrator:
+    cpus: 0.1
+  caddy:
+    cpus: 0.1
+  syntactic-code-intel-worker:
+    cpus: 0.1
+  syntect-server:
+    cpus: 0.1
+  prometheus:
+    cpus: 0.1
+  grafana:
+    cpus: 0.1
+  cadvisor:
+    cpus: 0.1
+  node-exporter:
+    cpus: 0.1
+  pgsql:
+    cpus: 0.1
+  pgsql-exporter:
+    cpus: 0.1
+

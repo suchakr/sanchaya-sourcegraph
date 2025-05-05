@@ -79,7 +79,7 @@ else
 fi
 
 echo "🚀 Starting Sourcegraph services with ${PROTOCOL^^} configuration..."
-sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.resource.yml up -d
 
 if [[ "$PROTOCOL" == "https" ]]; then
     echo "⚠️  Note: It may take a few minutes for Let's Encrypt to issue a certificate."
