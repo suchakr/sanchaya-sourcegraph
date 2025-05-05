@@ -52,9 +52,10 @@ else
     
     # Update the .env file with the correct IP address for HTTP
     sudo sed -i "s|SG_PORT=443|SG_PORT=7080|g" .env
-    sudo sed -i "s|SG_EXTERNAL_URL=https://YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_EXTERNAL_URL=http://$EXTERNAL_IP:7080|g" .env
+    sudo sed -i "s|https://YOUR_VM_EXTERNAL_IP_OR_DOMAIN|http://$EXTERNAL_IP:7080|g" .env
     sudo sed -i "s|SG_SITE_ADDRESS=YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_SITE_ADDRESS=$EXTERNAL_IP|g" .env
     sudo sed -i "s|SG_HTTPS_ENABLED=true|SG_HTTPS_ENABLED=false|g" .env
+    sudo sed -i "s|SG_CADDY_CONFIG=./caddy/builtins/https.lets-encrypt-prod.Caddyfile|SG_CADDY_CONFIG=./caddy/builtins/http.Caddyfile|g" .env
     
     FINAL_URL="http://$EXTERNAL_IP:7080"
 fi
