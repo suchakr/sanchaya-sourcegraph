@@ -5,7 +5,8 @@ set -euo pipefail
 PROJECT_ID=$(gcloud config get-value project)
 ZONE="us-central1-a"
 INSTANCE_NAME="sourcegraph-spot"
-MACHINE_TYPE="e2-standard-8"  # Using e2 for better cost efficiency
+# MACHINE_TYPE="e2-standard-8"  # Original value - 8 vCPUs, 32 GB RAM
+MACHINE_TYPE="e2-custom-4-17920"  # Custom type - 4 vCPUs, ~17.9 GB RAM
 DATA_DISK_NAME="sourcegraph-data"
 DATA_DISK_SIZE="100GB"
 STATIC_IP_NAME="sourcegraph-static-ip"
@@ -88,5 +89,3 @@ echo ""
 echo "You can now:"
 echo "1. SSH into the VM:        gcloud compute ssh $INSTANCE_NAME --zone=$ZONE"
 echo "2. Run stages manually:    cd ~/sanchaya-sourcegraph && ./01_docker_install.sh"
-echo "   or"
-echo "3. Use the wrapper:        cd ~/sanchaya-sourcegraph && ./deploy.sh"
