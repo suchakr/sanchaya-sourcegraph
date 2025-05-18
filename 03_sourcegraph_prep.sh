@@ -40,7 +40,7 @@ sudo chown -R root:root $TARGET_DIR/caddy
 sudo chmod -R 755 $TARGET_DIR/caddy
 
 sudo chown -R root:root $TARGET_DIR/prometheus
-sudo chmod -R 755 $TARGET_DIR/prometheus
+sudo chmod -R 777 $TARGET_DIR/prometheus
 
 sudo chown -R root:root $TARGET_DIR/zoekt
 sudo chmod -R 777 $TARGET_DIR/zoekt

@@ -33,7 +33,7 @@ mkdir -p \
 
 # Start the containers using the Mac-specific configuration
 echo "🐳 Starting Docker containers..."
-docker compose --env-file .env.mac -f docker-compose.yml -f docker-compose.mac.yml up -d
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.mac.yml up -d
 
 echo "✅ Sourcegraph is starting up! It may take a few minutes to be fully ready."
 echo "🌐 Once ready, you can access it at: http://localhost:7080"

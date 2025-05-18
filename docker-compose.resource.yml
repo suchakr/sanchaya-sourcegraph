@@ -15,8 +15,8 @@ services:
     cpus: 0.2
   repo-updater:
     cpus: 0.2
-  precise-code-intel-worker:
-    cpus: 0.2
+  # precise-code-intel-worker:
+  #   cpus: 0.2
   worker:
     cpus: 0.2
   zoekt-indexserver-0:

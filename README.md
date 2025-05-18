@@ -42,19 +42,15 @@ Ensure you have Docker Engine and Docker Compose installed on your GCP VM instan
 
 1. Clone this repository
 2. Make sure `/mnt/docker-data` exists (created by `03_sourcegraph_prep.sh`)
-3. Run the script to start Sourcegraph (with HTTP or HTTPS):
+3. Run the script to start Sourcegraph:
 
 ```sh
-# Start with HTTP (default) - for testing
 ./04_sourcegraph_start.sh
-
-# Start with HTTPS - for production
-./04_sourcegraph_start.sh https
 ```
 
 4. Access Sourcegraph at:
-   - HTTP mode: http://YOUR_VM_EXTERNAL_IP:7080
-   - HTTPS mode: https://YOUR_VM_EXTERNAL_IP
+   - Internal HTTP: http://YOUR_VM_INTERNAL_IP:7080
+   - External HTTPS: https://sanchaya.mooo.com (via external reverse proxy)
 
 5. To stop the deployment, run:
 
@@ -93,12 +89,6 @@ These scripts are designed to be run in order to set up a Sourcegraph instance o
 5. **`04_sourcegraph_start.sh`**  
    Starts the Sourcegraph services using Docker Compose with GCP-specific settings.
 
-#### All-in-One Deployment
-
-For convenience, an all-in-one deployment script is provided:
-
-- **`oneshot_deploy_gcp.sh`**  
-   Executes all the above scripts in sequence for a complete deployment.
 
 #### Cleanup
 
@@ -116,36 +106,29 @@ When you need to decommission your deployment:
 ./02_disk_setup.sh
 ./03_sourcegraph_prep.sh
 ./04_sourcegraph_start.sh
-
-# Or use the all-in-one script
-./oneshot_deploy_gcp.sh
 ```
 
 ### Environment Files
 
-This deployment uses different environment configurations depending on your deployment target:
+This deployment uses a simplified environment configuration:
 
 | File | Purpose | Key Settings | Use Case |
 |------|---------|--------------|----------|
-| `.env` | Default for local development | HTTP on port 7080 | Default for `docker compose up` |
+| `.env` | Default configuration | HTTP on port 7080 | Default for `docker compose up` |
 | `.env.mac` | Alternative for Mac with explicit volume paths | Same as default | Used by `mac_up.sh` script |
-| `.env.gcp` | GCP/production deployment | HTTPS on port 443 with Let's Encrypt | For secure production deployment |
 
 #### Environment Configuration Details
 
-When using `docker compose up` without specifying environment files:
-- The default `.env` file is automatically used
+The deployment uses the default `.env` file:
 - HTTP is configured on port 7080
 - No SSL certificate is used (plain HTTP)
-- Accessible via `http://<ip-address>:7080`
+- Internally accessible via `http://<ip-address>:7080`
+- External HTTPS access is provided by a separate reverse proxy
 
-When using `docker compose --env-file .env.gcp up -d`:
-- HTTPS is enabled on the standard port 443
-- Let's Encrypt automatically provides SSL certificates
-- More secure connection for production use
-- Accessible via `https://<ip-address>` (no port needed)
-
-If you don't need HTTPS during your pilot phase, you can deploy with the default `.env` file for simplicity. For production use, the `.env.gcp` configuration with HTTPS is recommended for better security.
+This simplified approach separates concerns:
+- Sourcegraph runs with HTTP internally
+- External HTTPS is handled by another service's Caddy instance
+- This makes the configuration easier to reason about and maintain
 
 ## Architecture Components
 
@@ -248,14 +231,30 @@ By default, the following ports are exposed:
 - Port 3370: Grafana dashboard
 - Port 9090: Prometheus metrics
 
-### HTTPS Configuration
+### External HTTPS Access
 
-To enable HTTPS:
+This deployment is designed to be accessed securely via HTTPS through an external reverse proxy. The configuration for the external Caddy instance should include:
 
-1. Comment out the HTTP Caddyfile mount in the `caddy` service
-2. Uncomment one of the HTTPS configuration options:
-   - Let's Encrypt (staging/production)
-   - Custom certificates
+```
+sanchaya.mooo.com {
+    # Enable automatic HTTPS with Let's Encrypt
+    tls {
+        protocols tls1.2 tls1.3
+    }
+    
+    # Enable compression
+    encode zstd gzip
+    
+    # Reverse proxy to the Sourcegraph frontend
+    # 172.17.0.1 is the Docker host IP
+    reverse_proxy 172.17.0.1:7080 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {http.request.remote}
+        header_up X-Forwarded-For {http.request.remote}
+        header_up X-Forwarded-Proto {http.request.scheme}
+    }
+}
+```
 
 ## Storage
 
@@ -284,9 +283,8 @@ This repository is organized as follows:
 - `docker-compose.override.yml`: Contains customizations for GCP deployment (expects `/mnt/docker-data`)
 - `docker-compose.mac.yml`: Mac-specific volume mappings (uses `./sourcegraph-data`)
 - `docker-compose.resource.yml`: Resource allocation and constraints for Docker services
-- `.env`: Default environment variables for local development (HTTP)
+- `.env`: Default environment variables (HTTP configuration)
 - `.env.mac`: Mac-specific environment variables (same as default)
-- `.env.gcp`: Google Cloud Platform specific settings (HTTPS with Let's Encrypt)
 - `mac_up.sh`: Script to create directories and start containers on macOS
 - `mac_down.sh`: Script to stop containers on macOS
 - `00_allocate_gcp.sh`: Creates GCP VM instance
@@ -294,13 +292,13 @@ This repository is organized as follows:
 - `02_disk_setup.sh`: Formats and mounts persistent disk storage
 - `03_sourcegraph_prep.sh`: Sets up directory structure for Sourcegraph data
 - `04_sourcegraph_start.sh`: Starts Sourcegraph services
-- `oneshot_deploy_gcp.sh`: All-in-one deployment script
+- `05_sourcegraph_stop.sh`: Stops Sourcegraph services
 - `cleanup_gcp.sh`: Removes GCP resources
 
 ### Caddy Directory (`caddy/`)
 
-Contains configurations for the Caddy web server that handles HTTP/HTTPS traffic:
-- `builtins/http.Caddyfile`: HTTP configuration for Caddy web server
+Contains configurations for the Caddy web server that handles HTTP traffic:
+- `builtins/http.Caddyfile`: HTTP configuration for Caddy web server (internal access)
 
 ### Configuration Directory (`config/`)
 
@@ -337,12 +335,6 @@ Contains persistent data for all services:
   
 - **Environment Files**:
   - `.env`: Default environment variables
-  - `.env.local`: Local development overrides
-  - `.env.gcp`: Google Cloud Platform specific settings
-  
-- **Scripts**:
-  - `deploy-to-gcp.sh`: Automates deployment to Google Cloud Platform
-  - `cleanup-gcp.sh`: Removes cloud resources when no longer needed
   
 - **Configuration Files**:
   - `caddy/builtins/http.Caddyfile`: Controls how HTTP traffic is handled
@@ -354,55 +346,4 @@ For more detailed configuration and operation instructions, see:
 
 - [Sourcegraph Docs](https://docs.sourcegraph.com)
 - [Docker Compose Deployment Docs](https://docs.sourcegraph.com/admin/install/docker-compose)
-
-## GCP Deployment Scripts
-
-> **Note**: Before running these scripts, ensure you have the Google Cloud SDK installed and configured with appropriate permissions.
-
-These scripts are designed to be run in order to set up a Sourcegraph instance on GCP. These scripts are invoked from your development machine and will create a GCP VM instance, install Docker, set up persistent storage, and start Sourcegraph services.
-
-1. **`00_allocate_gcp.sh`**  
-   Creates a new GCP VM instance with the necessary specifications (CPU, memory, disk).
-
-2. **`01_docker_install.sh`**  
-   Installs Docker and Docker Compose on the GCP VM instance.
-
-3. **`02_disk_setup.sh`**  
-   Formats and mounts additional persistent disk storage for Docker volumes.
-
-4. **`03_sourcegraph_prep.sh`**  
-   Prepares the directory structure for Sourcegraph data, setting up `/mnt/docker-data` paths.
-
-> !**Important**: ensure .env.gcp variables are set correctly for your deployment before running the next script.
-> 
-5. **`04_sourcegraph_start.sh`**  
-   Starts the Sourcegraph services using Docker Compose with GCP-specific settings.
-
-### All-in-One Deployment
-
-For convenience, an all-in-one deployment script is provided:
-
-- **`oneshot_deploy_gcp.sh`**  
-   Executes all the above scripts in sequence for a complete deployment.
-
-### Cleanup
-
-When you need to decommission your deployment:
-
-- **`cleanup_gcp.sh`**  
-   Removes all GCP resources created for the Sourcegraph deployment.
-
-### Usage Example
-
-```sh
-# Step-by-step deployment
-./00_allocate_gcp.sh
-./01_docker_install.sh
-./02_disk_setup.sh
-./03_sourcegraph_prep.sh
-./04_sourcegraph_start.sh
-
-# Or use the all-in-one script
-./oneshot_deploy_gcp.sh
-```
 

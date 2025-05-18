@@ -1,10 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Default to HTTP if no argument is provided
-PROTOCOL=${1:-http}
-
-echo "Stage 4: Starting Sourcegraph services with ${PROTOCOL^^} protocol..."
+echo "Stage 4: Starting Sourcegraph services ..."
 
 mkdir -p ./.checkpoints
 
@@ -13,16 +10,11 @@ if [ -f ./.checkpoints/04_sourcegraph_start.done ]; then
     exit 0
 fi
 
-# We're already in the correct directory since the script is run from the project root
-
 # Clean up any existing Docker resources to prevent conflicts
-echo "Cleaning up any existing Docker resources..."
-sudo docker-compose down --volumes || true
-sudo docker rm -f $(sudo docker ps -aq) || true
+# echo "Cleaning up any existing Docker resources..."
+# sudo docker-compose down --volumes || true
+# sudo docker rm -f $(sudo docker ps -aq) || true
 
-# Get the server's external IP
-EXTERNAL_IP=$(curl -s ifconfig.me)
-echo "📍 Detected external IP: $EXTERNAL_IP"
 
 # Pull the latest images
 echo "Pulling latest Docker images..."
@@ -31,37 +23,8 @@ sudo docker-compose pull
 # Ensure config directory exists
 mkdir -p ./config
 
-if [[ "$PROTOCOL" == "https" ]]; then
-    echo "🔒 Setting up HTTPS deployment..."
-    
-    # Create .env from .env.gcp template
-    sudo cp .env.gcp .env
-    
-    # Update the .env file with the correct IP address for HTTPS
-    sudo sed -i "s|SG_PORT=443|SG_PORT=443|g" .env
-    sudo sed -i "s|SG_EXTERNAL_URL=https://YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_EXTERNAL_URL=https://$EXTERNAL_IP|g" .env
-    sudo sed -i "s|SG_SITE_ADDRESS=YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_SITE_ADDRESS=$EXTERNAL_IP|g" .env
-    sudo sed -i "s|SG_HTTPS_ENABLED=true|SG_HTTPS_ENABLED=true|g" .env
-    
-    FINAL_URL="https://$EXTERNAL_IP"
-else
-    echo "🔓 Setting up HTTP deployment..."
-    
-    # Create .env from .env.gcp template
-    sudo cp .env.gcp .env
-    
-    # Update the .env file with the correct IP address for HTTP
-    sudo sed -i "s|SG_PORT=443|SG_PORT=7080|g" .env
-    sudo sed -i "s|https://YOUR_VM_EXTERNAL_IP_OR_DOMAIN|http://$EXTERNAL_IP:7080|g" .env
-    sudo sed -i "s|SG_SITE_ADDRESS=YOUR_VM_EXTERNAL_IP_OR_DOMAIN|SG_SITE_ADDRESS=$EXTERNAL_IP|g" .env
-    sudo sed -i "s|SG_HTTPS_ENABLED=true|SG_HTTPS_ENABLED=false|g" .env
-    sudo sed -i "s|SG_CADDY_CONFIG=./caddy/builtins/https.lets-encrypt-prod.Caddyfile|SG_CADDY_CONFIG=./caddy/builtins/http.Caddyfile|g" .env
-    
-    FINAL_URL="http://$EXTERNAL_IP:7080"
-fi
+FINAL_URL="http://localhost:7080"
 
-# Update site-config.json with the correct external URL
-echo "🔄 Updating site-config.json with $PROTOCOL URL..."
 if [ -f ./config/site-config.json ]; then
     # If file exists, update the externalURL
     if grep -q "externalURL" ./config/site-config.json; then
@@ -79,13 +42,8 @@ else
 }' | sudo tee ./config/site-config.json > /dev/null
 fi
 
-echo "🚀 Starting Sourcegraph services with ${PROTOCOL^^} configuration..."
+echo "🚀 Starting Sourcegraph services ..."
 sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.resource.yml up -d
-
-if [[ "$PROTOCOL" == "https" ]]; then
-    echo "⚠️  Note: It may take a few minutes for Let's Encrypt to issue a certificate."
-    echo "⚠️  Make sure ports 80 and 443 are open in your firewall."
-fi
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be healthy..."
