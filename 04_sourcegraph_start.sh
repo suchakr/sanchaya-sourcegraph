@@ -18,7 +18,7 @@ fi
 
 # Pull the latest images
 echo "Pulling latest Docker images..."
-sudo docker-compose pull
+sudo docker compose pull
 
 # Ensure config directory exists
 mkdir -p ./config
@@ -43,16 +43,16 @@ else
 fi
 
 echo "🚀 Starting Sourcegraph services ..."
-sudo docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.resource.yml up -d
+sudo docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.resource.yml up -d
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be healthy..."
 sleep 30
 
 # Verify core services are running
-if ! sudo docker-compose ps | grep -q "Up"; then
+if ! sudo docker compose ps | grep -q "Up"; then
     echo "❌ Error: Some services failed to start"
-    sudo docker-compose ps
+    sudo docker compose ps
     exit 1
 fi
 

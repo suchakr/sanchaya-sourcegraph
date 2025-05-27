@@ -31,12 +31,12 @@ echo \
 
 # Install Docker Engine
 sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
-# Install Docker Compose
-DOCKER_COMPOSE_VERSION="1.29.2"
-sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+## Install Docker Compose
+#DOCKER_COMPOSE_VERSION="1.29.2"
+#sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+#sudo chmod +x /usr/local/bin/docker-compose
 
 # Add current user to docker group
 sudo usermod -aG docker $USER

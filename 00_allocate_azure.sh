@@ -2,14 +2,14 @@
 set -euo pipefail
 
 # Configuration
-RESOURCE_GROUP="sourcegraph-rg"
+RESOURCE_GROUP="sourcegraph-rg1"
 LOCATION="eastus"
-INSTANCE_NAME="sourcegraph-spot"  # Changed to match GCP instance name
+INSTANCE_NAME="sourcegraph-spot1"  # Changed to match GCP instance name
 VM_SIZE="Standard_D4s_v3"  # 4 vCPUs, 16 GB RAM, similar to e2-custom-4-17920
-DATA_DISK_NAME="sourcegraph-data"
+DATA_DISK_NAME="sourcegraph-data1"
 DATA_DISK_SIZE="100"  # in GB
-PUBLIC_IP_NAME="sourcegraph-ip"
-NSG_NAME="sourcegraph-nsg"
+PUBLIC_IP_NAME="sourcegraph-ip1"
+NSG_NAME="sourcegraph-nsg1"
 
 # Detect Azure username (will use the same as local user)
 AZURE_USERNAME=$(whoami)
@@ -173,14 +173,24 @@ fi
 
 # Install git and clone the repository on the VM
 echo "📦 Installing git and cloning repository on VM..."
-REPO_URL="https://github.com/suchakr/sanchaya-sourcegraph.git"
-DEPLOY_DIR="/home/$AZURE_USERNAME/sanchaya-sourcegraph"
+REPO_URL_SG="https://github.com/suchakr/sanchaya-sourcegraph.git"
+DEPLOY_DIR_SG="/home/$AZURE_USERNAME/sg/sanchaya-sourcegraph"
+mkdir -p $DEPLOY_DIR_SG
 
 az vm run-command invoke \
     --resource-group $RESOURCE_GROUP \
     --name $INSTANCE_NAME \
     --command-id RunShellScript \
-    --scripts "sudo apt-get update && sudo apt-get install -y git && sudo rm -rf $DEPLOY_DIR && git clone $REPO_URL $DEPLOY_DIR && chmod +x $DEPLOY_DIR/*.sh && sudo chown -R $AZURE_USERNAME:$AZURE_USERNAME $DEPLOY_DIR"
+    --scripts "sudo apt-get update && sudo apt-get install -y git && sudo rm -rf $DEPLOY_DIR_SG && git clone $REPO_URL_SG $DEPLOY_DIR_SG && chmod +x $DEPLOY_DIR_SG/*.sh && sudo chown -R $AZURE_USERNAME:$AZURE_USERNAME $DEPLOY_DIR_SG"
+
+REPO_URL_ZKT="https://github.com/suchakr/sanchaya-zoekt.git"
+DEPLOY_DIR_ZKT="/home/$AZURE_USERNAME/sg/sanchaya-zoekt"
+mkdir -p $DEPLOY_DIR_ZKT
+az vm run-command invoke \
+    --resource-group $RESOURCE_GROUP \
+    --name $INSTANCE_NAME \
+    --command-id RunShellScript \
+    --scripts "sudo rm -rf $DEPLOY_DIR_ZKT && git clone $REPO_URL_ZKT $DEPLOY_DIR_ZKT && chmod +x $DEPLOY_DIR_ZKT/*.sh && sudo chown -R $AZURE_USERNAME:$AZURE_USERNAME $DEPLOY_DIR_ZKT"
 
 echo "✅ Resource allocation complete!"
 echo "🌐 Public IP: $PUBLIC_IP"
