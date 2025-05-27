@@ -197,5 +197,5 @@ echo "🌐 Public IP: $PUBLIC_IP"
 echo ""
 echo "You can now:"
 echo "1. SSH into the VM:        ssh $AZURE_USERNAME@$PUBLIC_IP"
-echo "2. Run stages manually:    cd ~/sanchaya-sourcegraph && ./01_docker_install.sh"
+echo "2. Run stages manually:    cd ~/sg/sanchaya-sourcegraph && ./01_docker_install.sh"
 
