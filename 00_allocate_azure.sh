@@ -2,14 +2,14 @@
 set -euo pipefail
 
 # Configuration
-RESOURCE_GROUP="sourcegraph-rg1"
+RESOURCE_GROUP="sourcegraph-rg"
 LOCATION="eastus"
-INSTANCE_NAME="sourcegraph-spot1"  # Changed to match GCP instance name
+INSTANCE_NAME="sourcegraph-spot"  # Changed to match GCP instance name
 VM_SIZE="Standard_D4s_v3"  # 4 vCPUs, 16 GB RAM, similar to e2-custom-4-17920
-DATA_DISK_NAME="sourcegraph-data1"
+DATA_DISK_NAME="sourcegraph-data"
 DATA_DISK_SIZE="100"  # in GB
-PUBLIC_IP_NAME="sourcegraph-ip1"
-NSG_NAME="sourcegraph-nsg1"
+PUBLIC_IP_NAME="sourcegraph-ip"
+NSG_NAME="sourcegraph-nsg"
 
 # Detect Azure username (will use the same as local user)
 AZURE_USERNAME=$(whoami)
