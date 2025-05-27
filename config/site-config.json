@@ -13,10 +13,6 @@
     "address": "noreply@example.com",
     "smtp": false
   },
-  "auth.adminUsers": ["admin"],
-  "auth.adminPasswords": {
-    "admin": "Adminadmin3339"
-  },
   "auth.roleDefinitions": {
     "readOnly": {
       "permissions": [
@@ -25,6 +21,8 @@
       ]
     }
   },
+  "auth.public": true,
+  "auth.accessTokens.allow": "no-user-credentials",
   "externalURL": "http://localhost:7080",
   "gcpexternalURL": "https://YOUR_GCP_INSTANCE_IP_OR_DOMAIN",
   "search.index.enabled": true,

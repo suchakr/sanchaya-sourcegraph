@@ -109,7 +109,7 @@ services:
       # - '/LOCAL/KEY/PATH.key:/sourcegraph.key'
     ports:
       - '0.0.0.0:${SG_PORT:-7080}:${SG_PORT:-7080}'
-      - '0.0.0.0:443:443'
+      # - '0.0.0.0:443:443'
     networks:
       - sourcegraph
     restart: always
@@ -241,8 +241,7 @@ services:
       - 'SRC_FRONTEND_INTERNAL=sourcegraph-frontend-internal:3090'
       - 'OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317'
     volumes:
-      # - 'gitserver-0:/data/repos'
-      - './sourcegraph-data/gitserver-0:/data/repos'
+      - 'gitserver-0:/data/repos'
 
     networks:
       - sourcegraph
@@ -333,26 +332,26 @@ services:
   #
   # Ports exposed to other Sourcegraph services: 3188/TCP
   # Ports exposed to the public internet: none
-  #
-  precise-code-intel-worker:
-    container_name: precise-code-intel-worker
-    image: 'index.docker.io/sourcegraph/precise-code-intel-worker:6.1.2889@sha256:2a8ec49e080ff19e6f05f92c39cfc67ac50b8e2ff5aba4dcbd7451bba1e8d539'
-    cpus: 2
-    mem_limit: '4g'
-    environment:
-      - 'SRC_FRONTEND_INTERNAL=sourcegraph-frontend-internal:3090'
-      - 'PRECISE_CODE_INTEL_UPLOAD_BACKEND=blobstore'
-      - 'PRECISE_CODE_INTEL_UPLOAD_AWS_ENDPOINT=http://blobstore:9000'
-      - 'OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317'
-    healthcheck:
-      test: "wget -q 'http://127.0.0.1:3188/healthz' -O /dev/null || exit 1"
-      interval: 5s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
-    networks:
-      - sourcegraph
-    restart: always
+  # #
+  # precise-code-intel-worker:
+  #   container_name: precise-code-intel-worker
+  #   image: 'index.docker.io/sourcegraph/precise-code-intel-worker:6.1.2889@sha256:2a8ec49e080ff19e6f05f92c39cfc67ac50b8e2ff5aba4dcbd7451bba1e8d539'
+  #   cpus: 2
+  #   mem_limit: '4g'
+  #   environment:
+  #     - 'SRC_FRONTEND_INTERNAL=sourcegraph-frontend-internal:3090'
+  #     - 'PRECISE_CODE_INTEL_UPLOAD_BACKEND=blobstore'
+  #     - 'PRECISE_CODE_INTEL_UPLOAD_AWS_ENDPOINT=http://blobstore:9000'
+  #     - 'OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317'
+  #   healthcheck:
+  #     test: "wget -q 'http://127.0.0.1:3188/healthz' -O /dev/null || exit 1"
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 60s
+  #   networks:
+  #     - sourcegraph
+  #   restart: always
 
   # Description: Handles repository metadata (not Git data) lookups and updates from external code hosts and other similar services.
   #
@@ -716,7 +715,7 @@ services:
     volumes:
       - ./sourcegraph-data/codeinsights-db:/var/lib/postgresql/data
       # - 'codeinsights-db:/var/lib/postgresql/data/'
-      # - '../codeinsights-db/conf:/conf/'
+      # - '../codeinsights-db/conf:/conf/':`
     networks:
       - sourcegraph
     restart: always
