@@ -1,17 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
-# Configuration
+# Configuration - Cost Optimized
 RESOURCE_GROUP="sourcegraph-rg"
 LOCATION="eastus"
-INSTANCE_NAME="sourcegraph-spot"  # Changed to match GCP instance name
-VM_SIZE="Standard_D4s_v3"  # 4 vCPUs, 16 GB RAM, similar to e2-custom-4-17920
-DATA_DISK_NAME="sourcegraph-data"
-DATA_DISK_SIZE="100"  # in GB
+INSTANCE_NAME="sourcegraph-spot"
+VM_SIZE="Standard_B2ms"  # 2 vCPUs, 8 GB RAM - Burstable performance
+OS_DISK_SIZE="32"  # 32GB OS disk (sufficient for Zoekt + repo + index)
 PUBLIC_IP_NAME="sourcegraph-ip"
 NSG_NAME="sourcegraph-nsg"
 
-# Detect Azure username (will use the same as local user)
+# Detect Azure username
 AZURE_USERNAME=$(whoami)
 echo "🔑 Using username: $AZURE_USERNAME"
 
@@ -22,17 +21,13 @@ resource_exists() {
     return $?
 }
 
-echo "🚀 Allocating Azure resources for Sourcegraph..."
+echo "🚀 Allocating cost-optimized Azure resources for Sourcegraph..."
 
 # Register required resource providers
 echo "🔄 Registering required resource providers..."
 az provider register --namespace Microsoft.Network
 az provider register --namespace Microsoft.Compute
 az provider register --namespace Microsoft.Storage
-echo "⏳ Waiting for provider registration to complete..."
-az provider show -n Microsoft.Network --query "registrationState" -o tsv
-az provider show -n Microsoft.Compute --query "registrationState" -o tsv
-az provider show -n Microsoft.Storage --query "registrationState" -o tsv
 
 # Create resource group if it doesn't exist
 echo "📍 Setting up resource group..."
@@ -40,13 +35,14 @@ if ! resource_exists "az group show --name $RESOURCE_GROUP" "$RESOURCE_GROUP"; t
     az group create --name $RESOURCE_GROUP --location $LOCATION
 fi
 
-# Create public IP if it doesn't exist
+# Create public IP if it doesn't exist (using dynamic allocation to save cost)
 echo "📍 Setting up public IP..."
 if ! resource_exists "az network public-ip show --resource-group $RESOURCE_GROUP --name $PUBLIC_IP_NAME"; then
     az network public-ip create \
         --resource-group $RESOURCE_GROUP \
         --name $PUBLIC_IP_NAME \
-        --allocation-method Static
+        --allocation-method Dynamic \
+        --sku Basic
 fi
 
 # Get the public IP address
@@ -128,18 +124,8 @@ if ! resource_exists "az network nic show --resource-group $RESOURCE_GROUP --nam
         --public-ip-address $PUBLIC_IP_NAME
 fi
 
-# Create data disk if it doesn't exist
-echo "💾 Setting up data disk..."
-if ! resource_exists "az disk show --resource-group $RESOURCE_GROUP --name $DATA_DISK_NAME"; then
-    az disk create \
-        --resource-group $RESOURCE_GROUP \
-        --name $DATA_DISK_NAME \
-        --size-gb $DATA_DISK_SIZE \
-        --sku Premium_LRS
-fi
-
-# Create the VM instance
-echo "🖥️ Creating VM instance..."
+# Create the VM instance with cost optimizations
+echo "🖥️ Creating cost-optimized VM instance..."
 if ! resource_exists "az vm show --resource-group $RESOURCE_GROUP --name $INSTANCE_NAME"; then
     az vm create \
         --resource-group $RESOURCE_GROUP \
@@ -149,53 +135,52 @@ if ! resource_exists "az vm show --resource-group $RESOURCE_GROUP --name $INSTAN
         --admin-username $AZURE_USERNAME \
         --generate-ssh-keys \
         --nics $NIC_NAME \
-        --os-disk-size-gb 30
-
-    # Attach data disk
-    az vm disk attach \
-        --resource-group $RESOURCE_GROUP \
-        --vm-name $INSTANCE_NAME \
-        --name $DATA_DISK_NAME \
-        --lun 0
+        --os-disk-size-gb $OS_DISK_SIZE \
+        --os-disk-caching ReadWrite \
+        --storage-sku Standard_LRS
 
     # Wait for VM to be ready
     echo "⏳ Waiting for VM to be ready..."
     sleep 30
     
-    # Initialize the full disk space
-    echo "💾 Initializing the full disk for use..."
+    # Create application directory on OS disk
+    echo "📁 Setting up application directory..."
     az vm run-command invoke \
         --resource-group $RESOURCE_GROUP \
         --name $INSTANCE_NAME \
         --command-id RunShellScript \
-        --scripts "sudo parted /dev/sdb --script mklabel gpt && sudo parted /dev/sdb --script mkpart primary ext4 0% 100% && sudo mkfs.ext4 /dev/sdb1 && sudo mkdir -p /mnt && sudo mount /dev/sdb1 /mnt && echo '/dev/sdb1 /mnt ext4 defaults,nofail 0 2' | sudo tee -a /etc/fstab && sudo chown -R $AZURE_USERNAME:$AZURE_USERNAME /mnt"
+        --scripts "sudo mkdir -p /opt/sourcegraph && sudo chown -R $AZURE_USERNAME:$AZURE_USERNAME /opt/sourcegraph"
 fi
 
 # Install git and clone the repository on the VM
 echo "📦 Installing git and cloning repository on VM..."
 REPO_URL_SG="https://github.com/suchakr/sanchaya-sourcegraph.git"
 DEPLOY_DIR_SG="/home/$AZURE_USERNAME/sg/sanchaya-sourcegraph"
-mkdir -p $DEPLOY_DIR_SG
 
 az vm run-command invoke \
     --resource-group $RESOURCE_GROUP \
     --name $INSTANCE_NAME \
     --command-id RunShellScript \
-    --scripts "sudo apt-get update && sudo apt-get install -y git && sudo rm -rf $DEPLOY_DIR_SG && git clone $REPO_URL_SG $DEPLOY_DIR_SG && chmod +x $DEPLOY_DIR_SG/*.sh && sudo chown -R $AZURE_USERNAME:$AZURE_USERNAME $DEPLOY_DIR_SG"
+    --scripts "sudo apt-get update && sudo apt-get install -y git && sudo rm -rf $DEPLOY_DIR_SG && mkdir -p /home/$AZURE_USERNAME/sg && git clone $REPO_URL_SG $DEPLOY_DIR_SG && chmod +x $DEPLOY_DIR_SG/*.sh && sudo chown -R $AZURE_USERNAME:$AZURE_USERNAME $DEPLOY_DIR_SG"
 
 REPO_URL_ZKT="https://github.com/suchakr/sanchaya-zoekt.git"
 DEPLOY_DIR_ZKT="/home/$AZURE_USERNAME/sg/sanchaya-zoekt"
-mkdir -p $DEPLOY_DIR_ZKT
+
 az vm run-command invoke \
     --resource-group $RESOURCE_GROUP \
     --name $INSTANCE_NAME \
     --command-id RunShellScript \
     --scripts "sudo rm -rf $DEPLOY_DIR_ZKT && git clone $REPO_URL_ZKT $DEPLOY_DIR_ZKT && chmod +x $DEPLOY_DIR_ZKT/*.sh && sudo chown -R $AZURE_USERNAME:$AZURE_USERNAME $DEPLOY_DIR_ZKT"
 
-echo "✅ Resource allocation complete!"
+echo "✅ Cost-optimized resource allocation complete!"
 echo "🌐 Public IP: $PUBLIC_IP"
+echo ""
+echo "💰 Estimated monthly cost: ~$122-130"
+echo "🖥️  VM: Standard_B2ms (2 vCPUs, 8GB RAM) - Burstable performance"
+echo "💾 Storage: 32GB Standard SSD (OS disk only)"
+echo "🌐 Network: Dynamic Public IP (Free)"
 echo ""
 echo "You can now:"
 echo "1. SSH into the VM:        ssh $AZURE_USERNAME@$PUBLIC_IP"
 echo "2. Run stages manually:    cd ~/sg/sanchaya-sourcegraph && ./01_docker_install.sh"
-
+echo "3. App data location:      /opt/sourcegraph"
