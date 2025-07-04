@@ -1,13 +1,12 @@
-#!/bin/zsh
+#!/bin/bash
 set -e
 
-# Configuration - using the same values from deploy-to-gcp.sh
+# Configuration - matching the cost-optimized allocation script
 PROJECT_ID=$(gcloud config get-value project)
 ZONE="us-central1-a"
-INSTANCE_NAME="sourcegraph-spot"
-DATA_DISK_NAME="sourcegraph-data"
+INSTANCE_NAME="sourcegraph-cost-optimized"  # Updated to match new instance name
 STATIC_IP_NAME="sourcegraph-static-ip"
-FIREWALL_RULE_NAME="sourcegraph-http-https"
+FIREWALL_RULE_NAME="allow-sourcegraph-web"  # Fixed to match actual rule name
 
 echo "🧹 Starting cleanup of Sourcegraph GCP resources..."
 
@@ -20,14 +19,7 @@ else
     echo "ℹ️ VM instance not found, skipping."
 fi
 
-# Delete the persistent disk
-echo "🗑️ Deleting persistent disk: $DATA_DISK_NAME"
-if gcloud compute disks describe $DATA_DISK_NAME --zone=$ZONE &>/dev/null; then
-    gcloud compute disks delete $DATA_DISK_NAME --zone=$ZONE --quiet
-    echo "✅ Persistent disk deleted successfully."
-else
-    echo "ℹ️ Persistent disk not found, skipping."
-fi
+# Note: No separate data disk to delete in cost-optimized version (uses single boot disk)
 
 # Delete the static IP address
 echo "🗑️ Deleting static IP: $STATIC_IP_NAME"
