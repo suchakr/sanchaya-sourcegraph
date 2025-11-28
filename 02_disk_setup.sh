@@ -10,7 +10,16 @@ if [ -f ./.checkpoints/02_disk_setup.done ]; then
     exit 0
 fi
 
-# Constants
+# Check if running on macOS
+if [[ "$(uname)" == "Darwin" ]]; then
+    echo "Running on macOS. Skipping disk setup (not applicable)."
+    # Create checkpoint
+    touch ./.checkpoints/02_disk_setup.done
+    echo "✅ Stage 2: Disk setup not needed on macOS"
+    exit 0
+fi
+
+# Constants (Linux only)
 DOCKER_DATA_ROOT="/mnt/docker-data"
 PERSISTENT_DISK_DEVICE="/dev/sdb"
 PERSISTENT_DISK_LABEL="sourcegraph"
